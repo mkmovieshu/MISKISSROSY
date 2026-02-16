@@ -4,79 +4,72 @@ from flask import Flask
 from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
-from config import BOT_TOKEN, LOG_CHANNEL_ID, ADMIN_ID, ADMIN_USERNAME, FREE_CHANNEL_LINK
+from config import BOT_TOKEN, LOG_CHANNEL_ID, ADMIN_ID, ADMIN_USERNAME, SERIES_LIST
 
-# లాగింగ్
 logging.basicConfig(level=logging.INFO)
-
-# Render కోసం వెబ్ సర్వర్
 app = Flask('')
 
 @app.route('/')
-def home():
-    return "మల్టిపుల్ సిరీస్ బాట్ రన్ అవుతోంది!"
+def home(): return "Multi-Series Bot is Running!"
 
 def run_web():
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
-# /start కమాండ్
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    user_id = user.id
-    
-    # లాగ్ ఛానల్‌కు వివరాలు
-    log_text = f"🆕 **కొత్త యూజర్:**\n👤 పేరు: {user.first_name}\n🆔 ఐడి: `{user_id}`"
-    try:
-        await context.bot.send_message(chat_id=LOG_CHANNEL_ID, text=log_text, parse_mode='Markdown')
+    log_text = f"🆕 **కొత్త యూజర్:**\n👤 పేరు: {user.first_name}\n🆔 ఐడి: `{user.id}`"
+    try: await context.bot.send_message(chat_id=LOG_CHANNEL_ID, text=log_text, parse_mode='Markdown')
     except: pass
 
-    welcome_text = (
-        f"నమస్కారం {user.first_name}! 🙏\n\n"
-        f"మా ఆడియో సిరీస్ ల కోసం ₹99 చెల్లించి జాయిన్ అవ్వండి.\n"
-        f"మీ యూజర్ ఐడి: `{user_id}`\n\n"
-        f"పేమెంట్ స్క్రీన్‌షాట్ ను {ADMIN_USERNAME} కు పంపండి."
+    # సిరీస్ లిస్ట్ బటన్స్ క్రియేట్ చేయడం
+    keyboard = []
+    for key, data in SERIES_LIST.items():
+        keyboard.append([InlineKeyboardButton(f"🎬 {data['name']} - {data['price']}", callback_data=f"info_{key}")])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        f"నమస్కారం {user.first_name}! 🙏\n\nమా వద్ద ఉన్న ఆడియో సిరీస్ లు ఇక్కడ ఉన్నాయి. మీకు కావాల్సిన దానిపై క్లిక్ చేయండి:",
+        reply_markup=reply_markup
     )
-    keyboard = [[InlineKeyboardButton("పేమెంట్ వివరాలు 💳", callback_data='pay_info')]]
-    await update.message.reply_text(welcome_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
 
-# బటన్ హ్యాండ్లర్
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    if query.data == 'pay_info':
-        await query.edit_message_text(
-            "📌 **పేమెంట్ వివరాలు:**\n\nUPI ID: `మీ_UPI_ID` \n\n"
-            "స్క్రీన్‌షాట్‌తో పాటు మీ User ID ని పంపండి.",
-            parse_mode='Markdown'
-        )
-
-# అడ్మిన్ లింక్ పంపడానికి (వాడే విధానం: /sendlink [USER_ID] [CHANNEL_ID])
-async def send_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        return
     
-    if len(context.args) < 2:
-        await update.message.reply_text("సరైన విధానం: `/sendlink USER_ID CHANNEL_ID`", parse_mode='Markdown')
-        return
-
-    try:
-        target_user_id = int(context.args[0])
-        target_channel_id = int(context.args[1])
+    if query.data.startswith("info_"):
+        s_key = query.data.replace("info_", "")
+        series = SERIES_LIST[s_key]
         
-        # నిర్దిష్ట సిరీస్ ఛానల్ కోసం వన్-టైమ్ లింక్
-        link = await context.bot.create_chat_invite_link(
-            chat_id=target_channel_id, 
-            member_limit=1
+        pay_text = (
+            f"🎬 **సిరీస్ పేరు:** {series['name']}\n"
+            f"💰 **ధర:** {series['price']}\n"
+            f"🆔 **మీ యూజర్ ఐడి:** `{query.from_user.id}`\n\n"
+            f"📌 **పేమెంట్ విధానం:**\n"
+            f"UPI ID: `మీ_UPI_ID_ఇక్కడ` \n\n"
+            f"పేమెంట్ చేసి స్క్రీన్ షాట్ ను {ADMIN_USERNAME} కు పంపండి. "
+            f"మెసేజ్ లో 'సిరీస్: {series['name']}' అని తెలపండి."
         )
+        back_button = [[InlineKeyboardButton("🔙 వెనక్కి", callback_data="back_to_list")]]
+        await query.edit_message_text(pay_text, reply_markup=InlineKeyboardMarkup(back_button), parse_mode='Markdown')
 
-        await context.bot.send_message(
-            chat_id=target_user_id, 
-            text=f"✅ మీ పేమెంట్ వెరిఫై అయ్యింది!\nమీరు కోరిన సిరీస్ లింక్ ఇక్కడ ఉంది:\n\n{link.invite_link}"
-        )
-        await update.message.reply_text(f"User {target_user_id} కి ఛానల్ {target_channel_id} లింక్ పంపాను.")
-    
+    elif query.data == "back_to_list":
+        keyboard = []
+        for key, data in SERIES_LIST.items():
+            keyboard.append([InlineKeyboardButton(f"🎬 {data['name']} - {data['price']}", callback_data=f"info_{key}")])
+        await query.edit_message_text("మా వద్ద ఉన్న ఆడియో సిరీస్ లు ఇక్కడ ఉన్నాయి:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def send_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID: return
+    if len(context.args) < 2:
+        await update.message.reply_text("Usage: `/sendlink USER_ID CHANNEL_ID`", parse_mode='Markdown')
+        return
+    try:
+        t_id, c_id = int(context.args[0]), int(context.args[1])
+        link = await context.bot.create_chat_invite_link(chat_id=c_id, member_limit=1)
+        await context.bot.send_message(chat_id=t_id, text=f"✅ పేమెంట్ వెరిఫై అయ్యింది!\nమీ సిరీస్ లింక్: {link.invite_link}")
+        await update.message.reply_text(f"User {t_id} కి లింక్ పంపాను.")
     except Exception as e:
-        await update.message.reply_text(f"ఎర్రర్: {e}")
+        await update.message.reply_text(f"Error: {e}")
 
 def main():
     Thread(target=run_web).start()
@@ -88,4 +81,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
