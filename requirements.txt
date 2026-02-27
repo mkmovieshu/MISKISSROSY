@@ -1,0 +1,14 @@
+pyrofork>=2.3.68
+pymongo
+tgcrypto==1.2.5
+dnspython==2.7.0
+pytz
+motor
+requests
+aiohttp
+Flask>=2.0.0
+gunicorn>=21.2.0
+Jinja2>=3.0.0
+werkzeug>=2.0.0
+itsdangerous>=2.0.0
+setuptools
