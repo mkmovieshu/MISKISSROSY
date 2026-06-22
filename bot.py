@@ -14,7 +14,7 @@ class Bot(Client):
             api_id=API_ID,
             api_hash=API_HASH,
             bot_token=BOT_TOKEN,
-            plugins=dict(root="TechifyBots"),
+            plugins=dict(root="Techifybots"),
             workers=200,
             sleep_threshold=15
         )
