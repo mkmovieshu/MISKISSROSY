@@ -2,7 +2,7 @@ import secrets
 from datetime import datetime, timedelta
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from vars import FREE_LIMIT, AD_EXPIRY_HOURS, DOMAIN
-from Database.userdb import users, ad_sessions, videos
+from database.userdb import users, ad_sessions, videos
 
 async def handle_video(client, query):
     user_id = query.from_user.id
