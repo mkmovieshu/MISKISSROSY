@@ -1,8 +1,8 @@
 from pyrogram import Client, filters
 from pyrogram.types import *
 from vars import *
-from Database.maindb import mdb
-from Database.userdb import udb
+from database.maindb import mdb
+from database.userdb import udb
 from datetime import datetime
 import pytz, random, asyncio
 from .fsub import get_fsub
