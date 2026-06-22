@@ -1,6 +1,6 @@
 from pyrogram import Client, filters
 from vars import *
-from Database.maindb import mdb
+from database.maindb import mdb
 from pyrogram.types import Message
 from pyrogram.types import *
 
