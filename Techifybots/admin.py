@@ -1,6 +1,6 @@
 from pyrogram.types import *
-from Database.userdb import udb
-from Database.maindb import mdb
+from database.userdb import udb
+from database.maindb import mdb
 from vars import ADMIN_ID
 import asyncio
 from pyrogram.errors import *
